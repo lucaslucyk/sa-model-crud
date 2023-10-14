@@ -1,5 +1,15 @@
 from datetime import datetime
-from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    Iterable,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+)
 from uuid import UUID
 from pydantic import BaseModel
 from sqlalchemy import select, and_, or_
@@ -30,11 +40,12 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         Args:
             db (AsyncSession): Async db session
-            id (Any): Id to filter
+            uid (UUID): UUID to filter
 
         Returns:
             Optional[ModelType]: ModelType instance or None if id not exists
         """
+
         res = await db.execute(select(self.model).where(self.model.uid == uid))
         return res.scalar()
 
@@ -45,10 +56,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         Args:
             db (AsyncSession): Async db session
-            id (Any): Id to filter
+            uid (UUID): UUID to filter
 
         Raises:
-            HTTPException: HTTP_404_NOT_FOUND if item does not exist
+            NotFoundException: If item does not exist
 
         Returns:
             Optional[ModelType]: ModelType instance
@@ -75,6 +86,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             List[ModelType]: Matching results list
         """
+
         results = await db.execute(select(self.model).offset(skip).limit(limit))
         return results.scalars().all()
 
@@ -113,41 +125,98 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def find(
         self, db: AsyncSession, *, skip: int = 0, limit: int = 100, **kwargs
     ) -> List[ModelType]:
-        result = await db.execute(
-            select(self.model).filter_by(**kwargs).offset(skip).limit(limit)
-        )
-        return result.scalars().all()
-
-    async def find_one(self, db: AsyncSession, **kwargs):
-        result = await db.execute(
-            select(self.model).filter_by(**kwargs).limit(1)
-        )
-        return result.scalar()
-
-    async def save(self, db: AsyncSession, *, obj: ModelType) -> ModelType:
-        # add to database
-        if hasattr(obj, "updated_at"):
-            setattr(obj, "updated_at", datetime.utcnow())
-
-        db.add(obj)
-        await db.commit()
-        await db.refresh(obj)
-
-        # return instance
-        return obj
-
-    async def create(
-        self, db: AsyncSession, *, data: CreateSchemaType
-    ) -> ModelType:
-        """Try to create item in database
+        """Find elements with kwargs
 
         Args:
             db (AsyncSession): Async db session
-            data (CreateSchemaType): Schema to create
+            skip (int, optional): Optional Offset. Defaults to 0.
+            limit (int, optional): Optional limit. Defaults to 100.
+
+        Returns:
+            List[ModelType]: list of results
+        """
+
+        result = await db.execute(
+            select(self.model).filter_by(**kwargs).offset(skip).limit(limit)
+        )
+
+        return result.scalars().all()
+
+    async def find_one(self, db: AsyncSession, **kwargs):
+        """Find an element with kwargs
+
+        Args:
+            db (AsyncSession): Async db session
+
+        Returns:
+            [ModelType]: First result object
+        """
+
+        result = await db.execute(
+            select(self.model).filter_by(**kwargs).limit(1)
+        )
+
+        return result.scalar()
+
+    @staticmethod
+    def _set_updated_at(element: ModelType) -> None:
+        """Set `updated_at` property to current time if property exists
+
+        Args:
+            obj (ModelType): Object instance
+        """
+
+        if hasattr(element, "updated_at"):
+            setattr(element, "updated_at", datetime.utcnow())
+
+    async def save(self, db: AsyncSession, *, element: ModelType) -> ModelType:
+        """Save an object into database
+
+        Args:
+            db (AsyncSession): Async db session
+            element (ModelType): ModelType instance to save
+
+        Returns:
+            ModelType: Saved object instance
+        """
+
+        # set updated_at
+        self._set_updated_at(element)
+
+        # add, commit and refresh
+        db.add(element)
+        await db.commit()
+        await db.refresh(element)
+
+        # return instance
+        return element
+
+    async def save_all(
+        self, db: AsyncSession, *, elements: Iterable[ModelType]
+    ):
+        # set updated_at
+        _ = list(map(self._set_updated_at, elements))
+
+        # add, commit and refresh
+        db.add_all(elements)
+        await db.commit()
+        for element in elements:
+            await db.refresh(element)
+
+        # return instances
+        return elements
+
+    async def create(
+        self, db: AsyncSession, *, element: CreateSchemaType
+    ) -> ModelType:
+        """create an item into database
+
+        Args:
+            db (AsyncSession): Async db session
+            element (CreateSchemaType): Schema to create
 
         Raises:
-            HTTPException: HTTP_400_BAD_REQUEST if item already exists
-            HTTPException: HTTP_400_BAD_REQUEST for other errors
+            CreateException: if item already exists or unexpected error
 
         Returns:
             ModelType: Instance of created object
@@ -155,8 +224,34 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         try:
             # try json encode
-            db_obj = self.model(data.model_dump(mode="json"))
-            return await self.save(db=db, obj=db_obj)
+            db_obj = self.model(**element.model_dump(mode="json"))
+            return await self.save(db=db, element=db_obj)
+
+        except IntegrityError:
+            raise CreateException(f"{self.model.__name__} already exists.")
+
+    async def bulk_create(
+        self, db: AsyncSession, *, elements: Iterable[CreateSchemaType]
+    ) -> Iterable[ModelType]:
+        """create an item into database
+
+        Args:
+            db (AsyncSession): Async db session
+            data (Iterable[CreateSchemaType]): Iterable of Schema to create
+
+        Raises:
+            CreateException: if an item already exists or unexpected error
+
+        Returns:
+            ModelType: Instance of created object
+        """
+
+        try:
+            # try json encode
+            db_objs = [
+                self.model(**d.model_dump(mode="python")) for d in elements
+            ]
+            return await self.save_all(db=db, elements=db_objs)
 
         except IntegrityError:
             raise CreateException(f"{self.model.__name__} already exists.")
@@ -173,7 +268,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Args:
             db (AsyncSession): Async db session
             obj (ModelType): Item to update
-            obj (Union[UpdateSchemaType, Dict[str, Any]]):
+            data (Union[UpdateSchemaType, Dict[str, Any]]):
                 New partial or full data for database item
 
         Returns:
@@ -190,7 +285,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         for field, value in update_data.items():
             setattr(obj, field, value)
 
-        return await self.save(db=db, obj=obj)
+        return await self.save(db=db, element=obj)
 
     async def delete(self, db: AsyncSession, *, uid: UUID) -> ModelType:
         """Delete an item from database
@@ -202,6 +297,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Returns:
             ModelType: Deleted object instance
         """
+
         obj = await self.get_or_raise(db=db, uid=uid)
 
         await db.delete(obj)
