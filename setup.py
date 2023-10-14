@@ -24,12 +24,12 @@ def get_version_from_git_tag() -> str:
     return version
 
 
-sa_model_crud_version: str = get_version_from_git_tag()
+sa_modelcrud_version: str = get_version_from_git_tag()
 
 # write version on VERSION file
-assert Path("sa_model_crud/version.py").is_file()
-with open("sa_model_crud/VERSION", "w", encoding="utf-8") as fh:
-    fh.write("%s\n" % sa_model_crud_version)
+assert Path("sa_modelcrud/version.py").is_file()
+with open("sa_modelcrud/VERSION", "w", encoding="utf-8") as fh:
+    fh.write("%s\n" % sa_modelcrud_version)
 
 
 # get description from README
@@ -38,11 +38,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 
 setup(
-    name="sa_model_crud",
-    version=sa_model_crud_version,
+    name="sa_modelcrud",
+    version=sa_modelcrud_version,
     description="Base CRUD manager to manage databases with asynchronous SQLAlchemy sessions",
     packages=find_packages(),
-    package_data={"sa_model_crud": ["VERSION"]},
+    package_data={"sa_modelcrud": ["VERSION"]},
     include_package_data=True,
     classifiers=[
         "Programming Language :: Python :: 3",
