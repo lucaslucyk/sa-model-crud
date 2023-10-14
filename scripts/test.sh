@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python -m unittest discover -s ./sa_modelcrud/tests -t ..
+coverage run -m unittest discover -s ./sa_modelcrud/tests -t ..

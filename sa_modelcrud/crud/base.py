@@ -12,7 +12,7 @@ from typing import (
 )
 from uuid import UUID
 from pydantic import BaseModel
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..models.base import ModelBase
@@ -32,8 +32,6 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             model (Type[ModelType]): A SQLAlchemy model class
         """
         self.model = model
-        self.and_ = and_
-        self.or_ = or_
 
     async def get(self, db: AsyncSession, uid: UUID) -> Optional[ModelType]:
         """Get row from model where id == model.id
@@ -93,8 +91,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def filter(
         self,
         db: AsyncSession,
-        *,
         whereclause: Any,
+        *,
         skip: int = 0,
         limit: int = 100,
     ) -> List[ModelType]:
@@ -102,13 +100,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         Args:
             db (AsyncSession): Async db session
-            filters (Union[list, tuple]): [description]
-            criterion (str, optional): [description]. Defaults to 'and'.
+            whereclause (Any): Whereclause to filter.
             skip (int, optional): Optional Offset. Defaults to 0.
             limit (int, optional): Optional limit. Defaults to 100.
-            multiple (bool, optional):
-                Optional bool to get single or multi items.
-                Defaults to True.
 
         Returns:
             List[ModelType]:
@@ -142,14 +136,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         return result.scalars().all()
 
-    async def find_one(self, db: AsyncSession, **kwargs):
+    async def find_one(self, db: AsyncSession, **kwargs) -> ModelType:
         """Find an element with kwargs
 
         Args:
             db (AsyncSession): Async db session
 
         Returns:
-            [ModelType]: First result object
+            ModelType: First result object
         """
 
         result = await db.execute(
@@ -169,7 +163,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if hasattr(element, "updated_at"):
             setattr(element, "updated_at", datetime.utcnow())
 
-    async def save(self, db: AsyncSession, *, element: ModelType) -> ModelType:
+    async def save(self, db: AsyncSession, element: ModelType) -> ModelType:
         """Save an object into database
 
         Args:
@@ -192,8 +186,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return element
 
     async def save_all(
-        self, db: AsyncSession, *, elements: Iterable[ModelType]
-    ):
+        self, db: AsyncSession, elements: Iterable[ModelType]
+    ) -> Iterable[ModelType]:
+        """Save an iterable of elements into database
+
+        Args:
+            db (AsyncSession): Async db session
+            elements (Iterable[ModelType]): Iterable of ModelType instance to save
+
+        Returns:
+            Iterable[ModelType]: Iterable of ModelType instance
+        """
+
         # set updated_at
         _ = list(map(self._set_updated_at, elements))
 
@@ -207,9 +211,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return elements
 
     async def create(
-        self, db: AsyncSession, *, element: CreateSchemaType
+        self, db: AsyncSession, element: CreateSchemaType
     ) -> ModelType:
-        """create an item into database
+        """Create an item into database
 
         Args:
             db (AsyncSession): Async db session
@@ -231,9 +235,9 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             raise CreateException(f"{self.model.__name__} already exists.")
 
     async def bulk_create(
-        self, db: AsyncSession, *, elements: Iterable[CreateSchemaType]
+        self, db: AsyncSession, elements: Iterable[CreateSchemaType]
     ) -> Iterable[ModelType]:
-        """create an item into database
+        """Create items into database
 
         Args:
             db (AsyncSession): Async db session
@@ -243,7 +247,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             CreateException: if an item already exists or unexpected error
 
         Returns:
-            ModelType: Instance of created object
+            Iterable[ModelType]: Iterable of Instance of created object
         """
 
         try:
@@ -272,7 +276,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 New partial or full data for database item
 
         Returns:
-            ModelType: [description]
+            ModelType: Instance of updated object
         """
 
         # obj to dict
@@ -287,7 +291,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         return await self.save(db=db, element=obj)
 
-    async def delete(self, db: AsyncSession, *, uid: UUID) -> ModelType:
+    async def delete(self, db: AsyncSession, uid: UUID) -> ModelType:
         """Delete an item from database
 
         Args:

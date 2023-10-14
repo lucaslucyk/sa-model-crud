@@ -1,0 +1,3 @@
+[run]
+source = sa_modelcrud
+omit = sa_modelcrud/tests/*.py, sa_modelcrud/version.py

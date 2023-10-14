@@ -7,6 +7,8 @@ class SampleBase(BaseModel):
     id: Optional[int] = None
     uid: Optional[UUID] = None
     token: Optional[str] = None
+    describe: Optional[str] = None
+    email: Optional[str] = None
 
 
 class SampleCreate(SampleBase):

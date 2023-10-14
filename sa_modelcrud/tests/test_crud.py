@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
+from pydoc import describe
 import unittest
 from uuid import uuid1
+from sqlalchemy.sql import text
 
 from ..models import ModelBase
-from ..exceptions.crud import NotFoundException
+from ..exceptions.crud import NotFoundException, CreateException
 from .schemas import SampleCreate, SampleUpdate
 from .models import Sample
 from .session import AsyncSessionLocal, engine
@@ -28,47 +30,210 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             os.remove(cls.db_path)
         super().tearDownClass()
 
-    async def test_00_create(self) -> None:
+    async def test_create(self) -> None:
         async with AsyncSessionLocal() as db:
-            sample_create = SampleCreate(token="fake-token")
+            email = "fake-create@fakedomain.com"
+            sample_create = SampleCreate(email=email, token="fake-token-1")
             sample_obj = await samples.create(db=db, element=sample_create)
 
-            assert isinstance(sample_obj, Sample)
-            assert sample_obj.token == sample_create.token
+            self.assertIsInstance(sample_obj, Sample)
+            self.assertEqual(sample_obj.token, sample_create.token)
 
-    async def test_01_bulk_create(self) -> None:
+            # create with raise
+            with self.assertRaises(CreateException):
+                error = SampleCreate(email=email)
+                await samples.create(db=db, element=error)
+
+    async def test_bulk_create(self) -> None:
         async with AsyncSessionLocal() as db:
-            sample_2 = SampleCreate(token="fake-token-2")
-            sample_3 = SampleCreate(token="fake-token-3")
+            email = "fake-bulk-create@fakedomain.com"
+            sample_2 = SampleCreate(
+                email=email, token="fake-token-2", describe="text"
+            )
+            sample_3 = SampleCreate(token="fake-token-3", describe="text")
 
             sample_2_db, sample_3_db = await samples.bulk_create(
                 db=db, elements=(sample_2, sample_3)
             )
-            assert isinstance(sample_2_db, Sample)
-            assert isinstance(sample_3_db, Sample)
-            assert sample_2_db.token == sample_2.token
-            assert sample_3_db.token == sample_3.token
+            self.assertIsInstance(sample_2_db, Sample)
+            self.assertIsInstance(sample_3_db, Sample)
+            self.assertEqual(sample_2_db.token, sample_2.token)
+            self.assertEqual(sample_3_db.token, sample_3.token)
 
-    
-    async def test_02_list(self) -> None:
+            # create with raise
+            with self.assertRaises(CreateException):
+                s = SampleCreate(describe="text-ok")
+                error = SampleCreate(email=email)
+                await samples.bulk_create(db=db, elements=(s, error))
+
+    async def test_list(self) -> None:
         async with AsyncSessionLocal() as db:
             all_ = await samples.list(db=db)
-            assert len(all_) > 0
+            self.assertGreater(len(all_), 0, "DB items were expected")
+            for obj in all_:
+                self.assertIsInstance(obj, Sample)
 
             limited = await samples.list(db=db, limit=1)
-            assert len(limited) == 1
+            self.assertEqual(len(limited), 1)
 
             skipped = await samples.list(db=db, skip=1)
-            assert len(skipped) < len(all_)
+            self.assertLess(len(skipped), len(all_))
 
+    async def test_filter(self) -> None:
+        async with AsyncSessionLocal() as db:
+            single = await samples.filter(
+                db=db, whereclause=samples.model.token == "fake-token-1"
+            )
+            self.assertEqual(len(single), 1, "One single item was expected")
+            self.assertIsInstance(single[0], Sample)
 
-    # async def test_03_get(self) -> None:
-    #     async with AsyncSessionLocal() as db:
+            wc = text("token LIKE '%fake%'")
+            multi = await samples.filter(db=db, whereclause=wc)
+            self.assertGreater(len(multi), 1)
+            for obj in multi:
+                self.assertIsInstance(obj, Sample)
 
-    #         sample = await samples.get(db=db, uid=self.sample_1.uid)
-    #         sample_2 = await samples.get_or_raise(db=db, uid=self.sample_2.uid)
-    #         assert sample.id == self.sample_1.id
-    #         assert sample_2.id == self.sample_2.id
+            skipped_limited = await samples.filter(
+                db=db, whereclause=wc, skip=1, limit=1
+            )
+            self.assertEqual(len(skipped_limited), 1)
 
-    #         with self.assertRaises(NotFoundException):
-    #             samples.get_or_raise(db=db, uid=uuid1())
+    async def test_find(self) -> None:
+        async with AsyncSessionLocal() as db:
+            single = await samples.find(db=db, token="fake-token-1")
+            self.assertEqual(len(single), 1, "One single item was expected")
+            self.assertIsInstance(single[0], Sample)
+
+            multi = await samples.find(db=db, describe="text")
+            self.assertGreater(len(multi), 1)
+            for obj in multi:
+                self.assertIsInstance(obj, Sample)
+
+            limited = await samples.find(db=db, describe="text", limit=1)
+            self.assertEqual(len(limited), 1, "One single item was expected")
+
+            skipped = await samples.find(db=db, describe="text", skip=1)
+            self.assertEqual(len(skipped), 1, "One single item was expected")
+
+            not_found = await samples.find(db=db, describe="not-found")
+            self.assertEqual(len(not_found), 0)
+
+            skip_all = await samples.find(db=db, describe="text", skip=5)
+            self.assertEqual(len(skip_all), 0)
+
+    async def test_find_one(self) -> None:
+        async with AsyncSessionLocal() as db:
+            # unique with some data
+            unique = await samples.find_one(db=db, describe=None)
+            self.assertIsInstance(unique, Sample)
+
+            # first of multi
+            multi = await samples.find_one(db=db, describe="text")
+            self.assertIsInstance(multi, Sample)
+
+            # first of db
+            empty = await samples.find_one(db=db)
+            self.assertIsInstance(empty, Sample)
+
+            # not found data
+            not_found = await samples.find_one(db=db, describe="not-found")
+            self.assertIsNone(not_found)
+
+    async def test_get(self) -> None:
+        async with AsyncSessionLocal() as db:
+            # get all samples
+            all_samples = await samples.list(db=db)
+
+            sample = await samples.get(db=db, uid=all_samples[0].uid)
+            self.assertIsInstance(sample, Sample)
+            self.assertEqual(sample.uid, all_samples[0].uid)
+
+            # not found
+            empty = await samples.get(db=db, uid=uuid1())
+            self.assertIsNone(empty)
+
+    async def test_get_or_raise(self) -> None:
+        async with AsyncSessionLocal() as db:
+            # get all samples
+            all_samples = await samples.list(db=db, skip=1, limit=1)
+
+            # with raise
+            sample = await samples.get_or_raise(db=db, uid=all_samples[0].uid)
+            self.assertIsInstance(sample, Sample)
+            self.assertEqual(sample.id, all_samples[0].id)
+
+            # not found with raise
+            with self.assertRaises(NotFoundException):
+                await samples.get_or_raise(db=db, uid=uuid1())
+
+    async def test_save(self) -> None:
+        async with AsyncSessionLocal() as db:
+            # get element
+            obj = await samples.find_one(db=db, describe=None)
+            updated_at = obj.updated_at
+            uid = obj.uid
+            id_ = obj.id
+
+            # update and save
+            obj.describe = "test-save"
+            obj = await samples.save(db=db, element=obj)
+            self.assertEqual(obj.describe, "test-save")
+
+            self.assertNotEqual(updated_at, obj.updated_at)
+            self.assertNotEqual(obj.created_at, obj.updated_at)
+            self.assertEqual(uid, obj.uid)
+            self.assertEqual(id_, obj.id)
+
+    async def test_save_all(self) -> None:
+        async with AsyncSessionLocal() as db:
+            # get element
+            objs = await samples.find(db=db, describe="text")
+            updateds = [obj.updated_at for obj in objs]
+            uids = [obj.uid for obj in objs]
+            ids = [obj.id for obj in objs]
+
+            # update and save
+            for obj in objs:
+                obj.describe = "test-save-all"
+
+            # save
+            objs = await samples.save_all(db=db, elements=objs)
+
+            # check updated
+            for obj in objs:
+                self.assertEqual(obj.describe, "test-save-all")
+
+            updateds_ = [obj.updated_at for obj in objs]
+            uids_ = [obj.uid for obj in objs]
+            ids_ = [obj.id for obj in objs]
+
+            self.assertNotEqual(updateds, updateds_)
+            self.assertEqual(uids, uids_)
+            self.assertEqual(ids, ids_)
+
+    async def test_update(self) -> None:
+        async with AsyncSessionLocal() as db:
+            sample = SampleCreate(describe="test-update")
+            obj = await samples.create(db=db, element=sample)
+            updated_ = obj.updated_at
+            uid = obj.uid
+
+            data = SampleUpdate(describe="test-update")
+            obj = await samples.update(db=db, obj=obj, data=data)
+
+            self.assertEqual(obj.describe, "test-update")
+            self.assertEqual(obj.uid, uid)
+            self.assertNotEqual(obj.updated_at, updated_)
+
+    async def test_delete(self) -> None:
+        async with AsyncSessionLocal() as db:
+            sample = SampleCreate(describe="for-test-delete")
+            obj = await samples.create(db=db, element=sample)
+
+            deleted = await samples.delete(db=db, uid=obj.uid)
+            self.assertEqual(obj, deleted)
+
+            not_found = await samples.find_one(
+                db=db, describe="for-test-delete"
+            )
+            self.assertIsNone(not_found)
