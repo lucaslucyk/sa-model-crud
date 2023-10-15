@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/sa-model-crud
+      url: https://pypi.org/p/sa-modelcrud
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     steps:

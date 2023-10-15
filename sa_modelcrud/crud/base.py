@@ -34,7 +34,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         self.model = model
 
     async def get(self, db: AsyncSession, uid: UUID) -> Optional[ModelType]:
-        """Get row from model where id == model.id
+        """Get row from model by uid
 
         Args:
             db (AsyncSession): Async db session
@@ -50,7 +50,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     async def get_or_raise(
         self, db: AsyncSession, uid: UUID
     ) -> Optional[ModelType]:
-        """Try to dgt row from model where id == model.id
+        """Try to get row from model by uid
 
         Args:
             db (AsyncSession): Async db session
@@ -96,7 +96,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         skip: int = 0,
         limit: int = 100,
     ) -> List[ModelType]:
-        """Get items from database using `filters` to filter
+        """Get items from database using `whereclause` to filter
 
         Args:
             db (AsyncSession): Async db session
