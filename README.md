@@ -1,4 +1,7 @@
 # SQLAlchemy Model CRUD
+
+![https://coveralls.io/repos/z4r/python-coveralls/badge.png?branch=master](https://coveralls.io/repos/z4r/python-coveralls/badge.png?branch=master)
+
 Base CRUD manager to manage databases with asynchronous SQLAlchemy sessions.
 
 

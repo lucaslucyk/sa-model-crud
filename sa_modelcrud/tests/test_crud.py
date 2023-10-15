@@ -225,6 +225,11 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(obj.uid, uid)
             self.assertNotEqual(obj.updated_at, updated_)
 
+            obj = await samples.update(
+                db=db, obj=obj, data={"describe": "test-update-2"}
+            )
+            self.assertEqual(obj.describe, "test-update-2")
+
     async def test_delete(self) -> None:
         async with AsyncSessionLocal() as db:
             sample = SampleCreate(describe="for-test-delete")
