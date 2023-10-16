@@ -77,10 +77,10 @@ from sa_modelcrud import CRUDBase
 
 
 class CRUDSample(CRUDBase[Sample, SampleCreate, SampleUpdate]):
-    ...
+    model = Sample
 
 
-samples = CRUDSample(Sample)
+samples = CRUDSample()
 ```
 
 

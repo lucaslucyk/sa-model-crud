@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import (
     Any,
@@ -24,14 +25,19 @@ CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
-class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType]) -> None:
-        """CRUD object with default methods to Create, Read, Update, & Delete
+class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType], ABC):
+    # def __init__(self, model: Type[ModelType]) -> None:
+    #     """CRUD object with default methods to Create, Read, Update, & Delete
 
-        Args:
-            model (Type[ModelType]): A SQLAlchemy model class
-        """
-        self.model = model
+    #     Args:
+    #         model (Type[ModelType]): A SQLAlchemy model class
+    #     """
+    #     self.model = model
+
+    @property
+    @abstractmethod
+    def model(self) -> type[ModelType]:
+        ...
 
     async def get(self, db: AsyncSession, uid: UUID) -> Optional[ModelType]:
         """Get row from model by uid

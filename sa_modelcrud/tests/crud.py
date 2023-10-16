@@ -5,7 +5,7 @@ from .schemas import SampleCreate, SampleUpdate
 
 
 class CRUDSample(CRUDBase[SampleModel, SampleCreate, SampleUpdate]):
-    ...
+    model = SampleModel
 
 
-samples = CRUDSample(SampleModel)
+samples = CRUDSample()
