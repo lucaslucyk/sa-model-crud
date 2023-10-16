@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Rename rename internal save methods from `save` and `save_all` to `_save` and `_save_all`.
 - Rename `skip` argument to `offset` on methods `list`, `filter` and `find`.
-- Change init `model` argument to required property on `CRUDBase`.
+- Change init `model` argument to abstract property on `CRUDBase`.
 
 
 ## [0.1.0] 2023-10-15

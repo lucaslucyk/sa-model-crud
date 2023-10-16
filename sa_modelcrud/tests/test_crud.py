@@ -1,10 +1,8 @@
 import os
 from pathlib import Path
-from pydoc import describe
 import unittest
 from uuid import uuid1
 from sqlalchemy.sql import text
-
 from ..models import ModelBase
 from ..exceptions.crud import NotFoundException, CreateException
 from .schemas import SampleCreate, SampleUpdate
