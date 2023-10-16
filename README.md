@@ -1,9 +1,9 @@
 # SQLAlchemy Model CRUD
-Base CRUD manager to manage databases with asynchronous SQLAlchemy sessions.
+Model CRUD manager to handle databases with asynchronous SQLAlchemy sessions.
 
 
-- Repository: [https://github.com/lucaslucyk/sa-model-crud](https://github.com/lucaslucyk/sa-model-crud)
-- PyPi: [https://pypi.org/project/sa-modelcrud](https://pypi.org/project/sa-modelcrud)
+- Source code: [https://github.com/lucaslucyk/sa-model-crud](https://github.com/lucaslucyk/sa-model-crud)
+- Package: [https://pypi.org/project/sa-modelcrud](https://pypi.org/project/sa-modelcrud)
 - Documentation: Coming soon.
 
 
@@ -11,6 +11,15 @@ Base CRUD manager to manage databases with asynchronous SQLAlchemy sessions.
 ⚠️ **_Warning_**: This project is currently in __*development phase*__.
 
 This project is in an early stage of development and may contain bugs. It is not recommended for use in production environments.
+
+
+## Why use `sa_crudmodel`?
+
+- 🚀 __Fast to code__: Increase the speed to develop integrations features.
+- ❌ __Fewer bugs__: Reduce human (developer) induced errors.
+- 💡 __Intuitive__: Great editor support. Completion everywhere. Less time debugging.
+- 🤓 __Easy__: Designed to be easy to use and learn. Less time reading docs.
+- 〽️  __Short__: Minimize code duplication. Multiple features from each parameter declaration. Fewer bugs.
 
 
 ## Requirements
@@ -32,7 +41,6 @@ $  pip install sa-modelcrud
 - Create a database model with:
 
 ```python
-from uuid import uuid1, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sa_modelcrud.models import ModelBase, Timestamp
 
@@ -105,7 +113,7 @@ AsyncSessionLocal: AsyncSession = async_sessionmaker(
 
 ```python
 async with AsyncSessionLocal() as db:
-    data = SampleCreate(email="sample@fakedomain.com")
+    data = SampleCreate(email="sample@sample")
 
     # save data into database
     sample_obj = await samples.create(db=db, element=data)
@@ -117,19 +125,23 @@ async with AsyncSessionLocal() as db:
 
 All inherited CRUDBase instances have the following methods:
 
-- `.get(...)`: Get row from model by uid.
-- `.get_or_raise(...)`: Try to get row from model by uid. Raise if not object found.
+- `.get(..., uid)`: Get row from model by uid.
+- `.get_or_raise(..., uid)`: Try to get row from model by uid. Raise if not object found.
 - `.list(...)`: Get multi items from database.
-- `.filter(...)`: Get items from database using `whereclause` to filter.
+- `.filter(..., whereclause)`: Get items from database using `whereclause` to filter.
 - `.find(..., **kwargs)`: Find elements with kwargs.
 - `.find_one(..., **kwargs)`: Find an element with kwargs.
-- `.save(...)`: Save an object into database.
-- `.save_all(...)`: Save an iterable of elements into database.
-- `.create(...)`: Create an item into database.
-- `.bulk_create(...)`: Create items into database.
-- `.update(...)`: Update a database item with an update schema.
-- `.delete(...)`: Delete an item from database.
+- `.create(..., element)`: Create an element into database.
+- `.bulk_create(..., elements)`: Create elements into database.
+- `.update(..., obj, data)`: Update a database obj with an update data schema.
+- `.delete(..., uid)`: Delete an item from database.
 
+
+## TODO:
+- [ ] Paginate results of methods `list`, `filter` and `find`.
+- [ ] Add default values for `offset` and `limit` on paginated methods.
+- [ ] Add support for Sync Sessions.
+- [ ] Create complete documentation in [Readthedocs](https://about.readthedocs.com/).
 
 ## Contributions and Feedback
 I would love to receive contributions and feedback! If you'd like to get involved, please contact me through one of the contact methods in my [Profile](https://github.com/lucaslucyk).

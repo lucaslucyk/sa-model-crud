@@ -76,7 +76,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             limited = await samples.list(db=db, limit=1)
             self.assertEqual(len(limited), 1)
 
-            skipped = await samples.list(db=db, skip=1)
+            skipped = await samples.list(db=db, offset=1)
             self.assertLess(len(skipped), len(all_))
 
     async def test_filter(self) -> None:
@@ -94,7 +94,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
                 self.assertIsInstance(obj, Sample)
 
             skipped_limited = await samples.filter(
-                db=db, whereclause=wc, skip=1, limit=1
+                db=db, whereclause=wc, offset=1, limit=1
             )
             self.assertEqual(len(skipped_limited), 1)
 
@@ -112,13 +112,13 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             limited = await samples.find(db=db, describe="text", limit=1)
             self.assertEqual(len(limited), 1, "One single item was expected")
 
-            skipped = await samples.find(db=db, describe="text", skip=1)
+            skipped = await samples.find(db=db, describe="text", offset=1)
             self.assertEqual(len(skipped), 1, "One single item was expected")
 
             not_found = await samples.find(db=db, describe="not-found")
             self.assertEqual(len(not_found), 0)
 
-            skip_all = await samples.find(db=db, describe="text", skip=5)
+            skip_all = await samples.find(db=db, describe="text", offset=5)
             self.assertEqual(len(skip_all), 0)
 
     async def test_find_one(self) -> None:
@@ -155,7 +155,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
     async def test_get_or_raise(self) -> None:
         async with AsyncSessionLocal() as db:
             # get all samples
-            all_samples = await samples.list(db=db, skip=1, limit=1)
+            all_samples = await samples.list(db=db, offset=1, limit=1)
 
             # with raise
             sample = await samples.get_or_raise(db=db, uid=all_samples[0].uid)
@@ -176,7 +176,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
 
             # update and save
             obj.describe = "test-save"
-            obj = await samples.save(db=db, element=obj)
+            obj = await samples._save(db=db, element=obj)
             self.assertEqual(obj.describe, "test-save")
 
             self.assertNotEqual(updated_at, obj.updated_at)
@@ -197,7 +197,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
                 obj.describe = "test-save-all"
 
             # save
-            objs = await samples.save_all(db=db, elements=objs)
+            objs = await samples._save_all(db=db, elements=objs)
 
             # check updated
             for obj in objs:

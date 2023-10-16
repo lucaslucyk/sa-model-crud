@@ -72,20 +72,22 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return obj
 
     async def list(
-        self, db: AsyncSession, *, skip: int = 0, limit: int = 100
+        self, db: AsyncSession, *, offset: int = 0, limit: int = 100
     ) -> List[ModelType]:
         """Get multi items from database without filter criteria
 
         Args:
             db (AsyncSession): Async db session
-            skip (int, optional): Optional Offset. Defaults to 0.
+            offset (int, optional): Optional Offset. Defaults to 0.
             limit (int, optional): Optional limit. Defaults to 100.
 
         Returns:
             List[ModelType]: Matching results list
         """
 
-        results = await db.execute(select(self.model).offset(skip).limit(limit))
+        results = await db.execute(
+            select(self.model).offset(offset).limit(limit)
+        )
         return results.scalars().all()
 
     async def filter(
@@ -93,7 +95,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db: AsyncSession,
         whereclause: Any,
         *,
-        skip: int = 0,
+        offset: int = 0,
         limit: int = 100,
     ) -> List[ModelType]:
         """Get items from database using `whereclause` to filter
@@ -101,7 +103,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         Args:
             db (AsyncSession): Async db session
             whereclause (Any): Whereclause to filter.
-            skip (int, optional): Optional Offset. Defaults to 0.
+            offset (int, optional): Optional Offset. Defaults to 0.
             limit (int, optional): Optional limit. Defaults to 100.
 
         Returns:
@@ -111,19 +113,19 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
         # try to get
         result = await db.execute(
-            select(self.model).where(whereclause).offset(skip).limit(limit)
+            select(self.model).where(whereclause).offset(offset).limit(limit)
         )
 
         return result.scalars().all()
 
     async def find(
-        self, db: AsyncSession, *, skip: int = 0, limit: int = 100, **kwargs
+        self, db: AsyncSession, *, offset: int = 0, limit: int = 100, **kwargs
     ) -> List[ModelType]:
         """Find elements with kwargs
 
         Args:
             db (AsyncSession): Async db session
-            skip (int, optional): Optional Offset. Defaults to 0.
+            offset (int, optional): Optional Offset. Defaults to 0.
             limit (int, optional): Optional limit. Defaults to 100.
 
         Returns:
@@ -131,7 +133,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """
 
         result = await db.execute(
-            select(self.model).filter_by(**kwargs).offset(skip).limit(limit)
+            select(self.model).filter_by(**kwargs).offset(offset).limit(limit)
         )
 
         return result.scalars().all()
@@ -163,15 +165,15 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if hasattr(element, "updated_at"):
             setattr(element, "updated_at", datetime.utcnow())
 
-    async def save(self, db: AsyncSession, element: ModelType) -> ModelType:
-        """Save an object into database
+    async def _save(self, db: AsyncSession, element: ModelType) -> ModelType:
+        """_save an object into database
 
         Args:
             db (AsyncSession): Async db session
-            element (ModelType): ModelType instance to save
+            element (ModelType): ModelType instance to _save
 
         Returns:
-            ModelType: Saved object instance
+            ModelType: _saved object instance
         """
 
         # set updated_at
@@ -185,14 +187,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         # return instance
         return element
 
-    async def save_all(
+    async def _save_all(
         self, db: AsyncSession, elements: Iterable[ModelType]
     ) -> Iterable[ModelType]:
-        """Save an iterable of elements into database
+        """_save an iterable of elements into database
 
         Args:
             db (AsyncSession): Async db session
-            elements (Iterable[ModelType]): Iterable of ModelType instance to save
+            elements (Iterable[ModelType]): Iterable of ModelType instance to _save
 
         Returns:
             Iterable[ModelType]: Iterable of ModelType instance
@@ -229,7 +231,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         try:
             # try json encode
             db_obj = self.model(**element.model_dump(mode="json"))
-            return await self.save(db=db, element=db_obj)
+            return await self._save(db=db, element=db_obj)
 
         except IntegrityError:
             raise CreateException(f"{self.model.__name__} already exists.")
@@ -255,7 +257,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             db_objs = [
                 self.model(**d.model_dump(mode="python")) for d in elements
             ]
-            return await self.save_all(db=db, elements=db_objs)
+            return await self._save_all(db=db, elements=db_objs)
 
         except IntegrityError:
             raise CreateException(f"{self.model.__name__} already exists.")
@@ -289,7 +291,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         for field, value in update_data.items():
             setattr(obj, field, value)
 
-        return await self.save(db=db, element=obj)
+        return await self._save(db=db, element=obj)
 
     async def delete(self, db: AsyncSession, uid: UUID) -> ModelType:
         """Delete an item from database
