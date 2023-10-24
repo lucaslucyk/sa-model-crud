@@ -29,13 +29,17 @@ jobs:
         uses: abatilo/actions-poetry@v2
         with:
           poetry-version: ${{ matrix.poetry-version }}
+      - name: Add poetry version plugin
+        run: poetry self add poetry-version-plugin
       - name: Install dependencies
         run: poetry install --without debug
       - name: Run tests
         run: |
           poetry run coverage run -m unittest discover -s ./sa_modelcrud/tests -t ..
           poetry run coverage report -m
-      - name: Build package
+      - name: Build package # build with 3.10 only
+        if: matrix.python-version == '3.10'
         run: poetry build
-      - name: Publish package distributions to PyPI
+      - name: Publish package distributions to PyPI # publish with 3.10 only
+        if: matrix.python-version == '3.10'
         uses: pypa/gh-action-pypi-publish@release/v1
