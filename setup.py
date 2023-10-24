@@ -37,10 +37,20 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 
+# get description from README
+with open("requirements.txt", "r", encoding="utf-8") as prf:
+    install_requires = prf.read().splitlines()
+
+
+# get description from README
+with open("requirements.dev.txt", "r", encoding="utf-8") as drf:
+    extra_dev_requires = drf.read().splitlines()
+
+
 setup(
     name="sa_modelcrud",
     version=sa_modelcrud_version,
-    description="Base CRUD manager to manage databases with asynchronous SQLAlchemy sessions",
+    description="Model CRUD manager to handle databases with asynchronous SQLAlchemy sessions",
     packages=find_packages(),
     package_data={"sa_modelcrud": ["VERSION"]},
     include_package_data=True,
@@ -52,10 +62,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.8",
-    install_requires=[
-        "pydantic>=2.4.2",
-        "sqlalchemy>=2.0.22"
-    ],
+    install_requires=install_requires,
+    extra_requires={"dev": extra_dev_requires},
     url="https://github.com/lucaslucyk/sa-model-crud",
     author="Lucas Lucyk",
     author_email="lucaslucyk@gmail.com",

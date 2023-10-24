@@ -1,10 +1,14 @@
 [tool.poetry]
-name = "async-sql-crud"
-version = "0.0.1"
-description = "Base CRUD manager to manage databases with asynchronous SQLAlchemy sessions"
+name = "sa-modelcrud"
+version = "0"
+description = "Model CRUD manager to handle databases with asynchronous SQLAlchemy sessions"
 authors = ["Lucas Lucyk <llucyk@grupospec.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [{include = "sa_modelcrud"}]
+
+[tool.poetry-version-plugin]
+source = "git-tag"
 
 [tool.poetry.dependencies]
 python = "^3.10"

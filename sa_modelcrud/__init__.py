@@ -1,4 +1,4 @@
-"""Top-level package for Async SQL CRUD."""
+"""Top-level package for SA Model CRUD."""
 
 __author__ = """Lucas Lucyk"""
 __email__ = "llucyk@gmail.com"
