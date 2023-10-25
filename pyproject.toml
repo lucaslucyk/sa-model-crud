@@ -11,7 +11,7 @@ packages = [{include = "sa_modelcrud"}]
 source = "git-tag"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.8"
 sqlalchemy = "^2.0.22"
 pydantic = "^2.4.2"
 
