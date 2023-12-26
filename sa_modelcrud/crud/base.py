@@ -30,28 +30,28 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType], ABC):
     def model(self) -> Type[ModelType]:
         ...
 
-    async def get(self, db: AsyncSession, uid: UUID) -> Optional[ModelType]:
+    async def get(self, db: AsyncSession, id: UUID) -> Optional[ModelType]:
         """Get row from model by uid
 
         Args:
             db (AsyncSession): Async db session
-            uid (UUID): UUID to filter
+            id (UUID): UUID to filter
 
         Returns:
             Optional[ModelType]: ModelType instance or None if id not exists
         """
 
-        res = await db.execute(select(self.model).where(self.model.uid == uid))
+        res = await db.execute(select(self.model).where(self.model.id == id))
         return res.scalar()
 
     async def get_or_raise(
-        self, db: AsyncSession, uid: UUID
+        self, db: AsyncSession, id: UUID
     ) -> Optional[ModelType]:
         """Try to get row from model by uid
 
         Args:
             db (AsyncSession): Async db session
-            uid (UUID): UUID to filter
+            id (UUID): UUID to filter
 
         Raises:
             NotFoundException: If item does not exist
@@ -61,7 +61,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType], ABC):
         """
 
         # try get item
-        obj = await self.get(db=db, uid=uid)
+        obj = await self.get(db=db, id=id)
 
         if not obj:
             raise NotFoundException(f"{self.model.__name__} not found")
@@ -290,18 +290,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType], ABC):
 
         return await self._save(db=db, element=obj)
 
-    async def delete(self, db: AsyncSession, uid: UUID) -> ModelType:
+    async def delete(self, db: AsyncSession, id: UUID) -> ModelType:
         """Delete an item from database
 
         Args:
             db (AsyncSession): Async db session
-            id (int): Id of model to delete
+            id (UUID): Id of model to delete
 
         Returns:
             ModelType: Deleted object instance
         """
 
-        obj = await self.get_or_raise(db=db, uid=uid)
+        obj = await self.get_or_raise(db=db, id=id)
 
         await db.delete(obj)
         await db.commit()

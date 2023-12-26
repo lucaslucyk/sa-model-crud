@@ -4,8 +4,7 @@ from pydantic import BaseModel
 
 
 class SampleBase(BaseModel):
-    id: Optional[int] = None
-    uid: Optional[UUID] = None
+    id: Optional[UUID] = None
     token: Optional[str] = None
     describe: Optional[str] = None
     email: Optional[str] = None

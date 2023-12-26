@@ -142,12 +142,12 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             # get all samples
             all_samples = await samples.list(db=db)
 
-            sample = await samples.get(db=db, uid=all_samples[0].uid)
+            sample = await samples.get(db=db, id=all_samples[0].id)
             self.assertIsInstance(sample, Sample)
-            self.assertEqual(sample.uid, all_samples[0].uid)
+            self.assertEqual(sample.id, all_samples[0].id)
 
             # not found
-            empty = await samples.get(db=db, uid=uuid1())
+            empty = await samples.get(db=db, id=uuid1())
             self.assertIsNone(empty)
 
     async def test_get_or_raise(self) -> None:
@@ -156,20 +156,20 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             all_samples = await samples.list(db=db, offset=1, limit=1)
 
             # with raise
-            sample = await samples.get_or_raise(db=db, uid=all_samples[0].uid)
+            sample = await samples.get_or_raise(db=db, id=all_samples[0].id)
             self.assertIsInstance(sample, Sample)
             self.assertEqual(sample.id, all_samples[0].id)
 
             # not found with raise
             with self.assertRaises(NotFoundException):
-                await samples.get_or_raise(db=db, uid=uuid1())
+                await samples.get_or_raise(db=db, id=uuid1())
 
     async def test_save(self) -> None:
         async with AsyncSessionLocal() as db:
             # get element
             obj = await samples.find_one(db=db, describe=None)
             updated_at = obj.updated_at
-            uid = obj.uid
+            id = obj.id
             id_ = obj.id
 
             # update and save
@@ -179,7 +179,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
 
             self.assertNotEqual(updated_at, obj.updated_at)
             self.assertNotEqual(obj.created_at, obj.updated_at)
-            self.assertEqual(uid, obj.uid)
+            self.assertEqual(id, obj.id)
             self.assertEqual(id_, obj.id)
 
     async def test_save_all(self) -> None:
@@ -187,7 +187,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             # get element
             objs = await samples.find(db=db, describe="text")
             updateds = [obj.updated_at for obj in objs]
-            uids = [obj.uid for obj in objs]
+            ids = [obj.id for obj in objs]
             ids = [obj.id for obj in objs]
 
             # update and save
@@ -202,11 +202,11 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(obj.describe, "test-save-all")
 
             updateds_ = [obj.updated_at for obj in objs]
-            uids_ = [obj.uid for obj in objs]
+            ids_ = [obj.id for obj in objs]
             ids_ = [obj.id for obj in objs]
 
             self.assertNotEqual(updateds, updateds_)
-            self.assertEqual(uids, uids_)
+            self.assertEqual(ids, ids_)
             self.assertEqual(ids, ids_)
 
     async def test_update(self) -> None:
@@ -214,13 +214,13 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             sample = SampleCreate(describe="test-update")
             obj = await samples.create(db=db, element=sample)
             updated_ = obj.updated_at
-            uid = obj.uid
+            id = obj.id
 
             data = SampleUpdate(describe="test-update")
             obj = await samples.update(db=db, obj=obj, data=data)
 
             self.assertEqual(obj.describe, "test-update")
-            self.assertEqual(obj.uid, uid)
+            self.assertEqual(obj.id, id)
             self.assertNotEqual(obj.updated_at, updated_)
 
             obj = await samples.update(
@@ -233,7 +233,7 @@ class TestCRUD(unittest.IsolatedAsyncioTestCase):
             sample = SampleCreate(describe="for-test-delete")
             obj = await samples.create(db=db, element=sample)
 
-            deleted = await samples.delete(db=db, uid=obj.uid)
+            deleted = await samples.delete(db=db, id=obj.id)
             self.assertEqual(obj, deleted)
 
             not_found = await samples.find_one(
