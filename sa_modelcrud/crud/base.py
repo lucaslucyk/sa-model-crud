@@ -227,7 +227,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType], ABC):
 
         try:
             # try json encode
-            db_obj = self.model(**element.model_dump(mode="json"))
+            db_obj = self.model(**element.model_dump(mode="python"))
             return await self._save(db=db, element=db_obj)
 
         except IntegrityError:
