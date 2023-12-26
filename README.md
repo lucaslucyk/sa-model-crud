@@ -59,8 +59,7 @@ from pydantic import BaseModel
 
 
 class SampleBase(BaseModel):
-    id: Optional[int] = None
-    uid: Optional[UUID] = None
+    id: Optional[UUID] = None
     email: Optional[str] = None
 
 class SampleCreate(SampleBase):
@@ -125,8 +124,8 @@ async with AsyncSessionLocal() as db:
 
 All inherited CRUDBase instances have the following methods:
 
-- `.get(..., uid)`: Get row from model by uid.
-- `.get_or_raise(..., uid)`: Try to get row from model by uid. Raise if not object found.
+- `.get(..., id)`: Get row from model by uid.
+- `.get_or_raise(..., id)`: Try to get row from model by uid. Raise if not object found.
 - `.list(...)`: Get multi items from database.
 - `.filter(..., whereclause)`: Get items from database using `whereclause` to filter.
 - `.find(..., **kwargs)`: Find elements with kwargs.
@@ -134,7 +133,7 @@ All inherited CRUDBase instances have the following methods:
 - `.create(..., element)`: Create an element into database.
 - `.bulk_create(..., elements)`: Create elements into database.
 - `.update(..., obj, data)`: Update a database obj with an update data schema.
-- `.delete(..., uid)`: Delete an item from database.
+- `.delete(..., id)`: Delete an item from database.
 
 
 ## TODO:
